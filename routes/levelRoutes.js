@@ -5,7 +5,6 @@ const { protect } = require('../middleware/auth');
 
 // All level routes require auth
 router.use(protect);
-// hiiiiiiii
 
 // GET /api/levels/scratch          → all Scratch levels
 // GET /api/levels/python           → all Python levels
