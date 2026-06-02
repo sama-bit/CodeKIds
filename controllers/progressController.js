@@ -34,14 +34,24 @@ const submitCode = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Level is locked' });
     }
 
-    // Validate submission
-    const validation = validateSubmission(code, level.missions);
+    // Pass full level data to validator so it can run maze simulation
+    const levelData = {
+      gridMap: level.gridMap,
+      gridRows: level.gridRows,
+      gridCols: level.gridCols,
+      startPosition: level.startPosition,
+      startDirection: level.startDirection,
+      goalPosition: level.goalPosition,
+      category: level.category,
+    };
+
+    // Validate submission (includes maze simulation for SCRATCH/PYTHON)
+    const validation = validateSubmission(code, level.missions, levelData);
 
     // Increment attempts
     progress.attempts += 1;
     progress.currentCode = code;
 
-    // Record submission
     const submission = {
       code,
       isCorrect: validation.allPassed,
@@ -49,37 +59,33 @@ const submitCode = async (req, res, next) => {
       timeTaken: timeTaken || 0,
     };
     progress.submissions.push(submission);
-    progress.completedMissions = [...new Set([...progress.completedMissions, ...validation.completedMissions])];
+    progress.completedMissions = [
+      ...new Set([...progress.completedMissions, ...validation.completedMissions]),
+    ];
 
     let unlocked_next = false;
     let newBadges = [];
 
     if (validation.allPassed) {
-      // Calculate stars based on attempts
       const stars = calculateStars(progress.attempts, level.starThresholds);
 
-      // Only update if better than before
       if (progress.status !== 'completed' || stars > progress.starsEarned) {
         const pointsEarned = Math.round(level.points * (stars / 3));
 
         if (progress.status !== 'completed') {
-          // First time completion
           progress.status = 'completed';
           progress.starsEarned = stars;
           progress.pointsEarned = pointsEarned;
           progress.completedAt = new Date();
           progress.timeTaken = timeTaken || 0;
 
-          // Add points and stars to user
           const user = await User.findById(req.user._id);
           user.totalPoints += pointsEarned;
           user.totalStars += stars;
 
-          // Check badges
           newBadges = await checkAndAwardBadges(user, upperCategory, parseInt(levelNumber));
           await user.save();
 
-          // Unlock next level
           const nextLevelNum = parseInt(levelNumber) + 1;
           if (nextLevelNum <= 10) {
             const nextLevel = await Level.findOne({
@@ -96,7 +102,6 @@ const submitCode = async (req, res, next) => {
             }
           }
         } else if (stars > progress.starsEarned) {
-          // Better performance on re-attempt
           const bonusPoints = pointsEarned - progress.pointsEarned;
           progress.starsEarned = stars;
           progress.pointsEarned = pointsEarned;
@@ -126,6 +131,59 @@ const submitCode = async (req, res, next) => {
         unlockedNextLevel: unlocked_next,
         nextLevel: unlocked_next ? parseInt(levelNumber) + 1 : null,
         newBadges,
+        // ✅ Simulation steps for frontend step-by-step animation
+        simulation: validation.simulation || null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Preview/simulate movement without saving progress
+// @route   POST /api/progress/:category/:levelNumber/simulate
+// @access  Private
+const simulateOnly = async (req, res, next) => {
+  try {
+    const { category, levelNumber } = req.params;
+    const { code } = req.body;
+    const upperCategory = category.toUpperCase();
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Code is required' });
+    }
+
+    const level = await Level.findOne({
+      category: upperCategory,
+      levelNumber: parseInt(levelNumber),
+    });
+
+    if (!level) {
+      return res.status(404).json({ success: false, message: 'Level not found' });
+    }
+
+    const { simulateMovement } = require('../utils/codeValidator');
+    const levelData = {
+      gridMap: level.gridMap,
+      gridRows: level.gridRows,
+      gridCols: level.gridCols,
+      startPosition: level.startPosition,
+      startDirection: level.startDirection,
+      goalPosition: level.goalPosition,
+      category: level.category,
+    };
+
+    const sim = simulateMovement(code, levelData);
+
+    res.json({
+      success: true,
+      simulation: {
+        steps: sim.steps,
+        reachedGoal: sim.reachedGoal,
+        hitWall: sim.hitWall,
+        totalSteps: sim.totalSteps,
+        finalPosition: sim.finalPosition,
+        error: sim.error,
       },
     });
   } catch (error) {
@@ -155,10 +213,12 @@ const getProgressOverview = async (req, res, next) => {
         totalLevels: 10,
         completedLevels: completed.length,
         totalStars,
-        maxStars: 30, // 10 levels × 3 stars
+        maxStars: 30,
         totalPoints,
         progressPercentage: Math.round((completed.length / 10) * 100),
-        currentLevel: catProgress.find((p) => p.status === 'in_progress' || p.status === 'unlocked')?.levelNumber || null,
+        currentLevel:
+          catProgress.find((p) => p.status === 'in_progress' || p.status === 'unlocked')
+            ?.levelNumber || null,
         levels: catProgress.map((p) => ({
           levelNumber: p.levelNumber,
           title: p.level?.title,
@@ -226,8 +286,10 @@ const checkAndAwardBadges = async (user, category, levelNumber) => {
     status: 'completed',
   });
 
-  // First level badge
-  if (levelNumber === 1 && !user.badges.find((b) => b.badgeId === `first_${category.toLowerCase()}`)) {
+  if (
+    levelNumber === 1 &&
+    !user.badges.find((b) => b.badgeId === `first_${category.toLowerCase()}`)
+  ) {
     const badge = {
       badgeId: `first_${category.toLowerCase()}`,
       name: `First ${category} Level!`,
@@ -237,8 +299,10 @@ const checkAndAwardBadges = async (user, category, levelNumber) => {
     newBadges.push(badge);
   }
 
-  // Category complete badge
-  if (categoryProgress.length === 10 && !user.badges.find((b) => b.badgeId === `complete_${category.toLowerCase()}`)) {
+  if (
+    categoryProgress.length === 10 &&
+    !user.badges.find((b) => b.badgeId === `complete_${category.toLowerCase()}`)
+  ) {
     const badge = {
       badgeId: `complete_${category.toLowerCase()}`,
       name: `${category} Master!`,
@@ -248,8 +312,10 @@ const checkAndAwardBadges = async (user, category, levelNumber) => {
     newBadges.push(badge);
   }
 
-  // All 3 categories complete
-  const allCompleted = await UserProgress.countDocuments({ user: user._id, status: 'completed' });
+  const allCompleted = await UserProgress.countDocuments({
+    user: user._id,
+    status: 'completed',
+  });
   if (allCompleted === 30 && !user.badges.find((b) => b.badgeId === 'grand_master')) {
     const badge = {
       badgeId: 'grand_master',
@@ -263,4 +329,4 @@ const checkAndAwardBadges = async (user, category, levelNumber) => {
   return newBadges;
 };
 
-module.exports = { submitCode, getProgressOverview, getCategoryProgress };
+module.exports = { submitCode, simulateOnly, getProgressOverview, getCategoryProgress };

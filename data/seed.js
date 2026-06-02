@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Level = require('../models/Level');
 const connectDB = require('../config/db');
+const { SCRATCH_MAZES, PYTHON_MAZES } = require('./mazeData');
 
 const levelsData = [
   // ===================== SCRATCH LEVELS =====================
@@ -26,6 +27,7 @@ const levelsData = [
     hints: ['Think about which direction the character needs to move first', 'Count the steps needed to reach the treasure'],
     points: 100,
     imageRef: 'SCRACH/1.jpg',
+    ...(SCRATCH_MAZES[1] || {}),
     order: 1,
   },
   {
@@ -50,6 +52,7 @@ const levelsData = [
     hints: ['You need to turn before moving in a new direction'],
     points: 120,
     imageRef: 'SCRACH/2.jpg',
+    ...(SCRATCH_MAZES[2] || {}),
     order: 2,
   },
   {
@@ -74,6 +77,7 @@ const levelsData = [
     hints: ['Plan your path before placing commands', 'Count each step'],
     points: 140,
     imageRef: 'SCRACH/3.jpg',
+    ...(SCRATCH_MAZES[3] || {}),
     order: 3,
   },
   {
@@ -98,6 +102,7 @@ const levelsData = [
     hints: ['When you see the same move repeated, use repeat!', 'repeat 2 means do something 2 times'],
     points: 160,
     imageRef: 'SCRACH/4.jpg',
+    ...(SCRATCH_MAZES[4] || {}),
     order: 4,
   },
   {
@@ -107,7 +112,7 @@ const levelsData = [
     description: 'Use repeat only when moves are the same. Combine repeat with turn and move.',
     difficulty: 'intermediate',
     codeTemplate: '// Combine repeat with other commands\n// Example:\n// repeat 2\n//   move 5 steps\n// end\n// turn_left(90)\n// move 10 steps',
-    solution: 'repeat(2, () => {\n  go_forward()\n})\nturn_left()\nrepeat(3, () => {\n  go_forward()\n})',
+    solution: 'repeat(2, () => {\n  go_forward()\n})\nturn_left()\nrepeat(2, () => {\n  go_forward()\n})',
     availableTags: [
       { tag: 'go_forward()', description: 'Move forward' },
       { tag: 'repeat(n, fn)', description: 'Repeat n times' },
@@ -124,6 +129,7 @@ const levelsData = [
     hints: ['Use repeat only for the sections where you move the same way multiple times'],
     points: 180,
     imageRef: 'SCRACH/5.jpg',
+    ...(SCRATCH_MAZES[5] || {}),
     order: 5,
   },
   {
@@ -133,7 +139,7 @@ const levelsData = [
     description: 'Use "if" - if something is true, do this action.',
     difficulty: 'intermediate',
     codeTemplate: '// Use if to check before moving\n// Example:\n// repeat 5:\n//   if path_clear():\n//     go_forward()',
-    solution: 'repeat(5, () => {\n  if (path_clear()) {\n    go_forward()\n  }\n})\nrepeat(3, () => {\n  if (path_clear()) {\n    move_up()\n  }\n})',
+    solution: 'repeat(5, () => {\n  if (path_clear()) {\n    go_forward()\n  }\n})\nrepeat(3, () => {\n  move_up()\n})',
     availableTags: [
       { tag: 'go_forward()', description: 'Move forward' },
       { tag: 'move_up()', description: 'Move up' },
@@ -149,6 +155,7 @@ const levelsData = [
     hints: ['Check if the path is clear before moving', 'Combine if with repeat for smarter movement'],
     points: 200,
     imageRef: 'SCRACH/6.jpg',
+    ...(SCRATCH_MAZES[6] || {}),
     order: 6,
   },
   {
@@ -175,6 +182,7 @@ const levelsData = [
     hints: ['When the path is blocked, turn instead of moving', 'else handles what happens when if is false'],
     points: 220,
     imageRef: 'SCRACH/7.jpg',
+    ...(SCRATCH_MAZES[7] || {}),
     order: 7,
   },
   {
@@ -200,6 +208,7 @@ const levelsData = [
     hints: ['Set your variable before the loop', 'Use change score by 1 inside the loop'],
     points: 250,
     imageRef: 'SCRACH/8.jpg',
+    ...(SCRATCH_MAZES[8] || {}),
     order: 8,
   },
   {
@@ -226,6 +235,7 @@ const levelsData = [
     hints: ['onclick runs when you click', 'on_reach runs when the character arrives at a target'],
     points: 280,
     imageRef: 'SCRACH/9.jpg',
+    ...(SCRATCH_MAZES[9] || {}),
     order: 9,
   },
   {
@@ -257,6 +267,7 @@ const levelsData = [
     hints: ['Plan your path first on paper', 'Combine loops, conditions, variables, and events'],
     points: 500,
     imageRef: 'SCRACH/10.jpg',
+    ...(SCRATCH_MAZES[10] || {}),
     order: 10,
   },
 
@@ -281,6 +292,7 @@ const levelsData = [
     hints: ['Commands run top to bottom', 'Think about which direction to move first'],
     points: 100,
     imageRef: 'PYTHON/1.jpg',
+    ...(PYTHON_MAZES[1] || {}),
     order: 11,
   },
   {
@@ -307,6 +319,7 @@ const levelsData = [
     hints: ['x = 0 starts from the left', 'y = 0 starts from the top'],
     points: 120,
     imageRef: 'PYTHON/2.jpg',
+    ...(PYTHON_MAZES[2] || {}),
     order: 12,
   },
   {
@@ -332,6 +345,7 @@ const levelsData = [
     hints: ['for i in range(3) runs 3 times', 'Remember to indent code inside the loop with 4 spaces'],
     points: 140,
     imageRef: 'PYTHON/3.jpg',
+    ...(PYTHON_MAZES[3] || {}),
     order: 13,
   },
   {
@@ -357,6 +371,7 @@ const levelsData = [
     hints: ['Always check if the path is clear before moving into a wall'],
     points: 160,
     imageRef: 'PYTHON/4.jpg',
+    ...(PYTHON_MAZES[4] || {}),
     order: 14,
   },
   {
@@ -382,6 +397,7 @@ const levelsData = [
     hints: ['def creates a reusable block of code', 'Call the function by writing its name with ()'],
     points: 200,
     imageRef: 'PYTHON/5.jpg',
+    ...(PYTHON_MAZES[5] || {}),
     order: 15,
   },
   {
@@ -409,6 +425,7 @@ const levelsData = [
     hints: ['A list holds multiple values', 'Loop through the list to execute each move in order'],
     points: 220,
     imageRef: 'PYTHON/6.jpg',
+    ...(PYTHON_MAZES[6] || {}),
     order: 16,
   },
   {
@@ -437,6 +454,7 @@ const levelsData = [
     hints: ['Write the full path in your list first', 'Then loop through to execute'],
     points: 240,
     imageRef: 'PYTHON/7.jpg',
+    ...(PYTHON_MAZES[7] || {}),
     order: 17,
   },
   {
@@ -463,6 +481,7 @@ const levelsData = [
     hints: ['Use "and" to combine two conditions', 'Use "not" to check the opposite'],
     points: 260,
     imageRef: 'PYTHON/8.jpg',
+    ...(PYTHON_MAZES[8] || {}),
     order: 18,
   },
   {
@@ -489,6 +508,7 @@ const levelsData = [
     hints: ['Check if there is an item before each move', 'Collect first, then move forward'],
     points: 300,
     imageRef: 'PYTHON/9.jpg',
+    ...(PYTHON_MAZES[9] || {}),
     order: 19,
   },
   {
@@ -517,6 +537,7 @@ const levelsData = [
     hints: ['while loops keep running until the condition is false', 'The character turns when the path is blocked'],
     points: 500,
     imageRef: 'PYTHON/10.jpg',
+    ...(PYTHON_MAZES[10] || {}),
     order: 20,
   },
 

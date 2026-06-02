@@ -27,48 +27,63 @@ const levelSchema = new mongoose.Schema(
       enum: ['beginner', 'intermediate', 'advanced'],
       required: true,
     },
-    // The incomplete code template shown to the user
     codeTemplate: {
       type: String,
       required: true,
     },
-    // The correct solution
     solution: {
       type: String,
       required: true,
     },
-    // Available tags/commands the user can use
     availableTags: [
       {
         tag: String,
         description: String,
       },
     ],
-    // Mission objectives (checkboxes)
     missions: [
       {
         id: String,
         description: String,
-        // For validation: what to check in the code
         validator: String,
       },
     ],
-    // Hints shown progressively
     hints: [String],
-    // Points awarded on completion
     points: {
       type: Number,
       default: 100,
     },
-    // Stars (1-3) based on performance
     starThresholds: {
-      oneStar: { type: Number, default: 1 },   // min attempts
+      oneStar: { type: Number, default: 1 },
       twoStar: { type: Number, default: 3 },
-      threeStar: { type: Number, default: 1 },  // first try
+      threeStar: { type: Number, default: 1 },
     },
-    // Image reference from the zip
     imageRef: {
       type: String,
+    },
+    // Grid/maze data for movement simulation
+    // gridMap: 2D array where 0=open, 1=wall, 2=start, 3=goal, 4=item
+    gridMap: {
+      type: [[Number]],
+      default: null,
+    },
+    // Grid dimensions
+    gridCols: { type: Number, default: 6 },
+    gridRows: { type: Number, default: 6 },
+    // Starting position { row, col } and facing direction
+    startPosition: {
+      row: { type: Number, default: 0 },
+      col: { type: Number, default: 0 },
+    },
+    startDirection: {
+      type: String,
+      enum: ['right', 'left', 'up', 'down'],
+      default: 'right',
+    },
+    // Goal position
+    goalPosition: {
+      row: { type: Number, default: 5 },
+      col: { type: Number, default: 5 },
     },
     isActive: {
       type: Boolean,
@@ -84,7 +99,6 @@ const levelSchema = new mongoose.Schema(
   }
 );
 
-// Compound unique index
 levelSchema.index({ category: 1, levelNumber: 1 }, { unique: true });
 
 module.exports = mongoose.model('Level', levelSchema);
